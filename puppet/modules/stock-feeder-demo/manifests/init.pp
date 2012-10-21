@@ -1,5 +1,5 @@
 
-class stock_feeder_demo {
+class stock-feeder-demo {
 	package { "lighttpd":
 		ensure => latest
 	}

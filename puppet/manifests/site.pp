@@ -18,7 +18,7 @@ class { "$app_name":
 
 class { "gitapp":
 	app_name	=> "$app_name",
-	repository  => "git@github.com:gorillabuilderz/stock-feeder-demo.git",
+	repository  => "https://github.com/gorillabuilderz/stock-feeder-demo.git",
 	path		=> "$play::apps_home",
 	owner 		=> "$play::apps_user",
 	group 		=> "$play::apps_group",
