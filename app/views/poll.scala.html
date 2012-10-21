@@ -1,0 +1,3 @@
+@(stocks: Iterator[Stock])
+@for(stock <- stocks) {@stock.id @String.format("%7.3f", stock.price) @stock.direction
+} 
