@@ -25,10 +25,6 @@ class { "gitapp":
 	require => Class["Play"],
 }
 
-gitapp::version { "$app_name":
-	require => Class["gitapp"]
-}
-
 play::clean { "$app_name":
 	subscribe => Class["gitapp"]
 }
