@@ -14,7 +14,7 @@ class stock-feed-demo {
 		owner   => "root",
 		group   => "root",
 		mode    => "0644",
-		source  => "puppet:///modules/stock_feeder_demo/etc/lighttpd/lighttpd.conf",
+		source  => "puppet:///modules/stock-feed-demo/etc/lighttpd/lighttpd.conf",
 		require => Package["lighttpd"],
 		notify  => Service["lighttpd"],
 	}
@@ -30,7 +30,7 @@ class stock-feed-demo {
 		recurse => true,
 		purge 	=> true,
 		force 	=> true,
-		source  => "puppet:///modules/stock_feeder_demo/var/www/default",
+		source  => "puppet:///modules/stock-feed-demo/var/www/default",
 		require => Package["lighttpd"],
 		notify  => Service["lighttpd"],
 	}
