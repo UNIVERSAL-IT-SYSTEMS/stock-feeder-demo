@@ -1,3 +1,6 @@
 [submodule "puppet/modules/play"]
 	path = puppet/modules/play
 	url = https://github.com/andredumas/puppet-play.git
+[submodule "puppet/modules/gitapp"]
+	path = puppet/modules/gitapp
+	url = https://github.com/andredumas/puppet-gitapp.git
