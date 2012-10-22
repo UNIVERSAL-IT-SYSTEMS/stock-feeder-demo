@@ -1,3 +1,18 @@
-@(message: String)
+@(form: Form[String])
 
-@message
+<p>
+Initialise with a list of stocks.
+</p>
+<ul>
+	<li>Straight codes: GOOG, AAPL</li>
+	<li>Australian Stocks: Suffixed with .AX eg: ANZ.AX</li>
+</ul>
+
+<p>
+Enter comma separated (no spaces) codes: ANZ.AX,CBA.AX
+</p>
+@helper.form(action = routes.Application.updateInit) {
+	@helper.inputText(form("stockList"), '_label -> "Comma Separated Symbols")
+
+	<input type="submit" value="Save">
+}

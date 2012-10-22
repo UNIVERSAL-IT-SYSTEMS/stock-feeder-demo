@@ -7,21 +7,39 @@ import play.api.mvc.Action
 import play.api.mvc.Controller
 import scala.io.Source
 import play.api.Logger
+import play.api.data._
+import play.api.data.Forms._
 
 case class Stock(id: Int, symbol: String, price: java.lang.Double, direction: String)
 
 object Application extends Controller {
   val yahooRegex = """([\^\w\.]*)",([\d\.]*),"([\d\/]*)","([\dapm:]*)",([\+-\.\d]*),([\d\.]*),([\d\.]*),([\d\.]*),([\d]*).*""".r
    
-  val stockList = mutable.Map(
-		  "AAPL" -> new Stock(0, "AAPL", 0D, "-"),
-		  "GOOG" -> new Stock(1, "GOOG", 0D, "-"),
-		  "YHOO" -> new Stock(2, "YHOO", 0D, "-")
-      )
+  val stockList = mutable.Map[String, Stock]()
       
+  val stockListForm = Form(
+		  single("stockList" -> nonEmptyText)
+  )
+	
   def init = Action {
-    Ok(views.html.init("Yay!"))
+    Ok(views.html.init(stockListForm))
   }
+  
+  def updateInit = Action { implicit request =>
+    stockListForm.bindFromRequest.fold(
+	  errors => BadRequest(views.html.init(errors)),
+	  value => { // binding success, you get the actual value
+		  stockList.clear
+		  var index = 0
+		  value.split(",").foreach { symbol => 
+		    stockList.put(symbol, new Stock(index, symbol, 0D, "/")) 
+		  	index += 1 
+		  }
+	    
+		  Redirect(routes.Application.poll)
+	  } 
+	)
+  }  
   
   def poll = Action {
     val source = Source.fromInputStream(
@@ -40,11 +58,12 @@ object Application extends Controller {
 	        	.map { stock =>
 	        		// Up or down?
 	        	  	if(stock.price.compareTo(price) < 0)
-	        	  		new Stock(stock.id, symbol, price, "U")
+	        	  		new Stock(stock.id, symbol, price, "+")
 	        	  	else
-	        	  		new Stock(stock.id, symbol, price, "D")
+	        	  		new Stock(stock.id, symbol, price, "-")
 	        	}.filter { stock =>
-//	        	  stockList.put(stock.symbol, new Stock(stock.id, symbol, price, "U"))
+	        	  // Replace the stock with the latest value
+	        	  stockList.put(stock.symbol, stock)
 	        	  true
 	      		}
 	      }
