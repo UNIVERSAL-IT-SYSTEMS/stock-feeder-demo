@@ -4,6 +4,7 @@
 
 # Home page
 GET     /poll                       controllers.Application.poll
+GET     /pollStream                 controllers.Application.pollStream
 GET     /init                       controllers.Application.init
 POST    /init                       controllers.Application.updateInit
 

@@ -1,5 +1,6 @@
-@(form: Form[String])
+@(stocks: Iterable[Stock], form: Form[String])
 
+<p>Current Stocks: @stocks.mkString</p>
 <p>
 Initialise with a list of stocks.
 </p>
