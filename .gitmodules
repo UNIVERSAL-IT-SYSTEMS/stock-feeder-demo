@@ -4,3 +4,6 @@
 [submodule "puppet/modules/gitapp"]
 	path = puppet/modules/gitapp
 	url = https://github.com/andredumas/puppet-gitapp.git
+[submodule "sketchbook/libraries/gb-arduino-libs"]
+	path = sketchbook/libraries/gb-arduino-libs
+	url = https://github.com/gorillabuilderz/gb-arduino-libs.git
