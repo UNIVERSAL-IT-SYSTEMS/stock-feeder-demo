@@ -35,7 +35,7 @@ EthernetClient client;
 GB4DSPILcdDriver lcd(A3);
 
 const int stockCount = 6;
-// AEX.AS
+// AEX.AS,FUR.AS,KPN.AS,PNL.AS,REN.AS,UNA.AS
 // ANZ.AX,BHP.AX,CBA.AX,NAB.AX,QAN.AX,RIO.AX
 String stocksLabel[stockCount] = { "ANZ", "BHP", "CBA", "NAB", "QAN", "RIO", };
 Label stocks[stockCount] = { 

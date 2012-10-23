@@ -15,10 +15,12 @@ case class Stock(id: Int, symbol: String, price: java.lang.Double, direction: St
 object Application extends Controller {
   val yahooRegex = """([\^\w\.]*)",([\d\.]*),"([\d\/]*)","([\dapm:]*)",([\+-\.\d]*),([\d\.]*),([\d\.]*),([\d\.]*),([\d]*).*""".r
    
+  var update = false
   val stockList = mutable.Map[String, Stock]()
       
   val stockListForm = Form(
-		  single("stockList" -> nonEmptyText)
+		  tuple("stockList" -> nonEmptyText,
+		      "update" -> boolean)
   )
 	
   def init = Action {
@@ -31,12 +33,14 @@ object Application extends Controller {
 	  value => { // binding success, you get the actual value
 		  stockList.clear
 		  var index = 0
-		  value.split(",").foreach { symbol => 
+		  value._1.split(",").foreach { symbol => 
 		    stockList.put(symbol, new Stock(index, symbol, 0D, "/")) 
 		  	index += 1 
 		  }
+		  
+		  update = value._2
 	    
-		  Redirect(routes.Application.poll)
+		  Redirect(routes.Application.init)
 	  } 
 	)
   }  
@@ -61,15 +65,17 @@ object Application extends Controller {
 	        stockList.get(symbol).filter(!_.price.equals(price))
 	        	.map { stock =>
 	        		// Up or down?
-	        	  	if(stock.price.compareTo(price) < 0)
+	        	  	val newStock = if(stock.price.compareTo(price) < 0)
 	        	  		new Stock(stock.id, symbol, price, "+")
 	        	  	else
 	        	  		new Stock(stock.id, symbol, price, "-")
-	        	}.filter { stock =>
-	        	  // Replace the stock with the latest value so we can check for difference next time round
-//	        	  stockList.put(stock.symbol, stock)
-	        	  true
-	      		}
+	        	  	
+	        	  	if(update) { 
+	        	  	  stockList.put(stock.symbol, newStock) 
+	        	  	}
+	        	  	
+	        	  	newStock
+	        	}
 	      }
 	      case None => {
 	        Logger.warn("Failed to parse response: " + source.mkString)
@@ -84,9 +90,15 @@ object Application extends Controller {
 		  	onStart = { pushee =>
 		  	  // Stream data for 2 minutes
 		  	  for(i <- 0 until 60) {
-		  		  pushee.push(views.html.poll(getQuotes).toString.trim);
-		  		  // Semi 'realtime'
-		  		  Thread.sleep(2000)
+		    	val quotes = getQuotes
+	  	    	// If there are quotes
+	  	    	if(!quotes.isEmpty) {
+	  	    	  // Push them out
+	  	    	  pushee.push(views.html.poll(quotes).toString.trim);
+	  	    	}
+	  	    	
+	  		  	// Semi 'realtime'
+	  		  	Thread.sleep(2000)
 		  	  }
 
 		  	  pushee.close; 
