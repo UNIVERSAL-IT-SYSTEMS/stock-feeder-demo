@@ -10,7 +10,14 @@ import play.api.data._
 import play.api.data.Forms._
 import play.api.libs.iteratee.Enumerator
 
-case class Stock(id: Int, symbol: String, price: java.lang.Double, direction: String)
+case class Stock(id: Int, fullSymbol: String, price: java.lang.Double, direction: String) {
+  val symbol = if(fullSymbol.indexOf('.') >= 0) {
+	  fullSymbol.take(fullSymbol.indexOf('.'))
+  }
+  else {
+    fullSymbol
+  }
+}
 
 object Application extends Controller {
   val yahooRegex = """([\^\w\.]*)",([\d\.]*),"([\d\/]*)","([\dapm:]*)",([\+-\.\d]*),([\d\.]*),([\d\.]*),([\d\.]*),([\d]*).*""".r
@@ -71,7 +78,7 @@ object Application extends Controller {
 	        	  		new Stock(stock.id, symbol, price, "-")
 	        	  	
 	        	  	if(update) { 
-	        	  	  stockList.put(stock.symbol, newStock) 
+	        	  	  stockList.put(stock.fullSymbol, newStock) 
 	        	  	}
 	        	  	
 	        	  	newStock
@@ -88,6 +95,9 @@ object Application extends Controller {
   def pollStream = Action {
 	  val dataStream = Enumerator.pushee[String] (
 		  	onStart = { pushee =>
+		  	  // Push everything the first time a client connects
+		  	  pushee.push(views.html.poll(stockList.values.iterator).toString.trim);
+		  	  
 		  	  // Stream data for 2 minutes
 		  	  for(i <- 0 until 60) {
 		    	val quotes = getQuotes
