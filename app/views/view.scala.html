@@ -51,14 +51,28 @@
 	        var self = this;
 	    }
 	    
+	    var appView = new AppViewModel();
+	    
+	    console.log("long poll");
+	    
+	    $(document).bind("longPoll", function() {
+	    	$.getJSON("/pollStream.json", function(data) {
+	    		// Update data
+	    		console.debug(data);
+	    		//appView.stocks = data;
+	    		// Fire event
+	    		$(document).trigger("longPoll");
+    		});	    	
+	    });
+	    
 	    $(document).ready(function() {
-	    	var appView = new AppViewModel();
-	    	
-	    	$.getJSON("/pollStream.json", function(data) { 
+	    	$.getJSON("/view.json", function(data) { 
 	    		appView.stocks = data;
 	    		ko.applyBindings(appView);
-	    	})
-	    	
+	    		
+	    		// Fire event
+	    		$(document).trigger("longPoll");
+	    	});
 	    });
     </script>
   </body>

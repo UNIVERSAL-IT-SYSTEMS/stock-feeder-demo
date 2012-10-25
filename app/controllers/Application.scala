@@ -22,6 +22,8 @@ import play.api.libs.json.Format
 import play.api.libs.json.JsString
 import play.api.libs.json.JsNumber
 import scala.collection.immutable.TreeSet
+import play.api.libs.concurrent.Promise
+import play.api.mvc.Result
 
 object Stock {
   def apply(id: Int, fullSymbol: String) = {
@@ -43,13 +45,14 @@ case class StockPushee(pushee:Pushee[String], var count: Int = 0)
 object Application extends Controller {
   val yahooRegex = """([\^\w\.]*)",([\d\.]*),"([\d\/]*)","([\dapm:]*)",([\+-\.\d]*),([\d\.]*),([\d\.]*),([\d\.]*),([\d]*).*""".r
    
-  var update = true
+  var update = false
   val stockList = mutable.Map[String, Stock]("AEX.AS" -> Stock(0, "AEX.AS"), "FUR.AS" -> Stock(1, "FUR.AS"))
   val stockPushees = new mutable.HashSet[StockPushee]() with mutable.SynchronizedSet[StockPushee]
+  val stockJsonPushees = new mutable.HashSet[StockPushee]() with mutable.SynchronizedSet[StockPushee]
 
   Akka.system.scheduler.schedule(0 seconds, 2 seconds) {
-    if(!stockPushees.isEmpty) {
-    	Logger.info("Processing pushees...")
+    if(!stockPushees.isEmpty || !stockJsonPushees.isEmpty) {
+    	Logger.info("Processing pushees..." + stockPushees + " " + stockJsonPushees)
     	processPushees
     }
   }
@@ -154,6 +157,22 @@ object Application extends Controller {
 	}
 
   def pollStreamJson = Action {
+	  val dataStream = Enumerator.pushee[String] (
+		  	onStart = { pushee =>
+		  	  // Add to the list to process
+		  	  stockJsonPushees.add(new StockPushee(pushee))
+		  	  Logger.info("New json pushee")
+		  	},
+		  	onComplete = { Logger.info("Complete") },
+		  	onError = { (error, input) => 
+		  	  Logger.error("Error with stream: " + error + " input: " + input) 
+		  	}
+	  )
+
+	  Ok.stream(dataStream)  
+  }
+  
+  def viewJson = Action {
     // TODO Sort the list
     Ok(Json.toJson(stockList.values.toSeq))
   }
@@ -170,11 +189,17 @@ object Application extends Controller {
 		
 		// TODO Send out the Json promises
 		// jsonPromises...
+		stockJsonPushees --= stockJsonPushees.filter { stockPushee => 
+	    	stockPushee.pushee.push(Json.toJson(getQuotes.toSeq).toString)
+	    	Logger.info("Processed json pushee: " + stockPushee)
+	    	stockPushee.pushee.close
+	    	true
+		}
 	}
     
     // Close the ones that have expired
     // TODO Figure out why this retain is not working
-    stockPushees.retain { stockPushee => 
+    stockPushees --= stockPushees.filter { stockPushee => 
 	    stockPushee.count += 1
 	    
 	    if(stockPushee.count > 3) {
@@ -182,7 +207,18 @@ object Application extends Controller {
 	    	stockPushee.pushee.close
 	    }
 	    
-      	stockPushee.count <= 3
+	    stockPushee.count > 3
+    }
+    
+    stockJsonPushees --= stockJsonPushees.filter { stockPushee =>
+      stockPushee.count += 1
+      
+      if(stockPushee.count > 3) {
+    	  	stockPushee.pushee.close
+    	  	Logger.info("Removing json pushee: " + stockPushee)
+      }
+      
+      stockPushee.count > 3 
     }
   }
   

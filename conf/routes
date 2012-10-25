@@ -8,6 +8,7 @@ GET     /pollStream.json             controllers.Application.pollStreamJson
 GET     /pollStream                 controllers.Application.pollStream
 GET     /init                       controllers.Application.init
 GET     /view                       controllers.Application.view
+GET     /view.json                  controllers.Application.viewJson
 POST    /init                       controllers.Application.updateInit
 
 # Map static resources from the /public folder to the /assets URL path
