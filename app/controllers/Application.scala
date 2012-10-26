@@ -1,8 +1,10 @@
 package controllers
 
 import java.net.URL
+
 import scala.collection.mutable
 import scala.io.Source
+
 import akka.util.duration.intToDurationInt
 import play.api.Logger
 import play.api.Play.current
@@ -13,46 +15,51 @@ import play.api.data.Forms.tuple
 import play.api.libs.concurrent.Akka
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.iteratee.Enumerator.Pushee
+import play.api.libs.json.Format
+import play.api.libs.json.JsNumber
+import play.api.libs.json.JsObject
+import play.api.libs.json.JsString
+import play.api.libs.json.JsValue
+import play.api.libs.json.Json
 import play.api.mvc.Action
 import play.api.mvc.Controller
-import play.api.libs.json.Json
-import play.api.libs.json.JsValue
-import play.api.libs.json.JsObject
-import play.api.libs.json.Format
-import play.api.libs.json.JsString
-import play.api.libs.json.JsNumber
-import scala.collection.immutable.TreeSet
-import play.api.libs.concurrent.Promise
-import play.api.mvc.Result
 
-object Stock {
-  def apply(id: Int, fullSymbol: String) = {
-    new Stock(id, fullSymbol, 0D, "/")
+
+object StockPushee {
+  val timeout = 30000L;
+}
+case class StockPushee() extends Pushee[String] {
+  var pushee:Pushee[String] = null
+  val timeout = System.currentTimeMillis + StockPushee.timeout
+  var complete = false
+
+  def isTimedout = { timeout < System.currentTimeMillis }
+  def isComplete = { isTimedout || complete }
+  def onComplete = { 
+    Logger.info("Pushee complete")
+    close
+  }
+  
+  def push(item: String) = {
+    pushee.push(item)
+  }
+  
+  def close = {
+    pushee.close
+    complete = true
+    Logger.info("Pushee close")
   }
 }
-case class Stock(id: Int, fullSymbol: String, price: java.lang.Double, direction: String) extends Ordered[Stock] {
-  val symbol = if(fullSymbol.indexOf('.') >= 0) {
-	  fullSymbol.take(fullSymbol.indexOf('.'))
-  }
-  else {
-    fullSymbol
-  }
-  def compare(other:Stock) = symbol compare other.symbol
-}
-
-case class StockPushee(pushee:Pushee[String], var count: Int = 0)
 
 object Application extends Controller {
-  val yahooRegex = """([\^\w\.]*)",([\d\.]*),"([\d\/]*)","([\dapm:]*)",([\+-\.\d]*),([\d\.]*),([\d\.]*),([\d\.]*),([\d]*).*""".r
-   
   var update = false
-  val stockList = mutable.Map[String, Stock]("AEX.AS" -> Stock(0, "AEX.AS"), "FUR.AS" -> Stock(1, "FUR.AS"))
+  
   val stockPushees = new mutable.HashSet[StockPushee]() with mutable.SynchronizedSet[StockPushee]
   val stockJsonPushees = new mutable.HashSet[StockPushee]() with mutable.SynchronizedSet[StockPushee]
 
   Akka.system.scheduler.schedule(0 seconds, 2 seconds) {
     if(!stockPushees.isEmpty || !stockJsonPushees.isEmpty) {
-    	Logger.info("Processing pushees..." + stockPushees + " " + stockJsonPushees)
+    	Logger.info("Processing pushees..." + stockPushees + " jsons:" + stockJsonPushees)
     	processPushees
     }
   }
@@ -61,19 +68,23 @@ object Application extends Controller {
 		  tuple("stockList" -> nonEmptyText,
 		      "update" -> boolean)
   )
-	
+    
+  def view = Action {
+    Ok(views.html.view())
+  }
+  
   def init = Action {
-    Ok(views.html.init(stockList.values, stockListForm))
+    Ok(views.html.init(Stock.stockList.values, stockListForm))
   }
   
   def updateInit = Action { implicit request =>
     stockListForm.bindFromRequest.fold(
-	  errors => BadRequest(views.html.init(stockList.values, errors)),
+	  errors => BadRequest(views.html.init(Stock.stockList.values, errors)),
 	  value => { // binding success, you get the actual value
-		  stockList.clear
+		  Stock.stockList.clear
 		  var index = 0
 		  value._1.split(",").foreach { symbol => 
-		    stockList.put(symbol, new Stock(index, symbol, 0D, "/")) 
+		    Stock.stockList.put(symbol, new Stock(index, symbol, 0D, "/")) 
 		  	index += 1 
 		  }
 		  
@@ -88,55 +99,24 @@ object Application extends Controller {
     Ok(views.html.poll(getQuotes))
   }
   
-  def getQuotes = {
-    val source = Source.fromInputStream(
-        new URL("http://download.finance.yahoo.com/d/quotes.csv?s=" + stockList.keys.mkString(",") + "&f=sl1d1t1c1ohgv&e=.csv")
-        	.openConnection()
-        	.getInputStream()
-    )
-
-    source.getLines.filter(!_.isEmpty).map {
-	    yahooRegex.findFirstIn(_) match {
-	      case Some(yahooRegex(symbol, priceString, date, time, change, open, high, low, volume)) => {
-	        val price = java.lang.Double.parseDouble(priceString)
-	        // Get from the map
-	    	// Is the value different?
-	        stockList.get(symbol).filter(!_.price.equals(price))
-	        	.map { stock =>
-	        		// Up or down?
-	        	  	val newStock = if(stock.price.compareTo(price) < 0)
-	        	  		new Stock(stock.id, symbol, price, "+")
-	        	  	else
-	        	  		new Stock(stock.id, symbol, price, "-")
-	        	  	
-	        	  	if(update) { 
-	        	  	  stockList.put(stock.fullSymbol, newStock) 
-	        	  	}
-	        	  	
-	        	  	newStock
-	        	}
-	      }
-	      case None => {
-	        Logger.warn("Failed to parse response: " + source.mkString)
-	        None
-	      }
-	    }      
-    }.filter(!_.isEmpty).map(_.get)
-  }
-  
   def pollStream = Action {
+	  val stockPushee = new StockPushee()
+	  
 	  val dataStream = Enumerator.pushee[String] (
 		  	onStart = { pushee =>
-		  	  // Add to the list to process
-		  	  stockPushees.add(new StockPushee(pushee))
+		  	  stockPushee.pushee = pushee
 		  	  
+		  	  // Add to the list to process
+		  	  Application.stockPushees.add(stockPushee)
+
 		  	  // Push everything the first time a client connects
 		  	  // TODO Sort the list
-		  	  pushee.push(views.html.poll(stockList.valuesIterator).toString.trim)
+		  	  stockPushee.push(views.html.poll(Stock.stockList.valuesIterator).toString.trim)
 		  	},
-		  	onComplete = { Logger.info("Complete") },
+		  	onComplete = { stockPushee.onComplete },
 		  	onError = { (error, input) => 
 		  	  Logger.error("Error with stream: " + error + " input: " + input) 
+		  	  stockPushee.onComplete
 		  	}
 	  )
 
@@ -153,19 +133,22 @@ object Application extends Controller {
 	        		"direction" -> JsString(stock.direction)
 	        	)
 	    )
-	
 	}
 
   def pollStreamJson = Action {
+	  val stockPushee = new StockPushee()
+    
 	  val dataStream = Enumerator.pushee[String] (
 		  	onStart = { pushee =>
+		  	  stockPushee.pushee = pushee
 		  	  // Add to the list to process
-		  	  stockJsonPushees.add(new StockPushee(pushee))
+		  	  stockJsonPushees.add(stockPushee)
 		  	  Logger.info("New json pushee")
 		  	},
-		  	onComplete = { Logger.info("Complete") },
+		  	onComplete = { stockPushee.onComplete },
 		  	onError = { (error, input) => 
-		  	  Logger.error("Error with stream: " + error + " input: " + input) 
+		  	  Logger.error("Error with stream: " + error + " input: " + input)
+		  	  stockPushee.onComplete
 		  	}
 	  )
 
@@ -174,7 +157,7 @@ object Application extends Controller {
   
   def viewJson = Action {
     // TODO Sort the list
-    Ok(Json.toJson(stockList.values.toSeq))
+    Ok(Json.toJson(Stock.stockList.values.toSeq))
   }
   
   def processPushees = {
@@ -182,47 +165,50 @@ object Application extends Controller {
 	// If there are quotes
 	if(!quotes.isEmpty) {
 		// Push them out for each pushee
-		stockPushees.foreach { stockPushee => 
+		stockPushees.filter(!_.isComplete).foreach { stockPushee => 
 	    	stockPushee.pushee.push(views.html.poll(quotes).toString.trim) 
 	    	Logger.info("Processed pushee: " + stockPushee)
 		}
 		
-		// TODO Send out the Json promises
-		// jsonPromises...
-		stockJsonPushees --= stockJsonPushees.filter { stockPushee => 
+		// Send out the Json promises
+		stockJsonPushees.filter(!_.isComplete).filter { stockPushee => 
 	    	stockPushee.pushee.push(Json.toJson(getQuotes.toSeq).toString)
 	    	Logger.info("Processed json pushee: " + stockPushee)
-	    	stockPushee.pushee.close
+	    	// Web clients process streams slightly differently, close the connection right after
+	    	// new data is pushed to force a reconnect
+	    	stockPushee.close
 	    	true
 		}
 	}
     
     // Close the ones that have expired
-    // TODO Figure out why this retain is not working
-    stockPushees --= stockPushees.filter { stockPushee => 
-	    stockPushee.count += 1
-	    
-	    if(stockPushee.count > 3) {
+    stockPushees.retain { stockPushee => 
+	    if(stockPushee.isComplete) {
 	    	Logger.info("Removing pushee: " + stockPushee)
-	    	stockPushee.pushee.close
+	    	stockPushee.close
 	    }
 	    
-	    stockPushee.count > 3
+	    // Retain items that are not complete
+	    !stockPushee.isComplete
     }
-    
-    stockJsonPushees --= stockJsonPushees.filter { stockPushee =>
-      stockPushee.count += 1
-      
-      if(stockPushee.count > 3) {
-    	  	stockPushee.pushee.close
+
+    stockJsonPushees.retain { stockPushee =>
+      if(stockPushee.isComplete) {
+    	  	stockPushee.close
     	  	Logger.info("Removing json pushee: " + stockPushee)
       }
       
-      stockPushee.count > 3 
+      // Retain items that are not complete
+      !stockPushee.isComplete
     }
   }
   
-  def view = Action {
-    Ok(views.html.view())
+  def getQuotes = {
+    val updatedStocks = StockFeed.getQuotes(Stock.stockList)
+    if(update) {
+      updatedStocks.foreach(stock => Stock.stockList.put(stock.fullSymbol, stock) )
+	}
+    
+    updatedStocks
   }
 }
