@@ -53,13 +53,16 @@
 	    
 	    var appView = new AppViewModel();
 	    
-	    console.log("long poll");
-	    
 	    $(document).bind("longPoll", function() {
 	    	$.getJSON("/pollStream.json", function(data) {
-	    		// Update data
-	    		console.debug(data);
-	    		//appView.stocks = data;
+	    		if(data != null) {
+		    		// Update data
+		    		console.debug(data);
+		    		ko.mapping.fromJS(data, appView.stocks);
+	    		}
+	    		else {
+	    			console.debug("null array...");
+	    		}
 	    		// Fire event
 	    		$(document).trigger("longPoll");
     		});	    	
