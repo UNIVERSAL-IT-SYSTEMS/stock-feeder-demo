@@ -3,7 +3,13 @@ package controllers
 import scala.collection.mutable
 
 object Stock {
-  val stockList = mutable.Map[String, Stock]("AEX.AS" -> Stock(0, "AEX.AS"), "FUR.AS" -> Stock(1, "FUR.AS"))
+  val stockList = mutable.Map[String, Stock](
+      // Testing data
+//	  "AEX.AS" -> Stock(0, "AEX.AS"), 
+//	  "PNL.AS" -> Stock(1, "PNL.AS"),
+//	  "FUR.AS" -> Stock(2, "FUR.AS"),
+//	  "KPN.AS" -> Stock(3, "KPN.AS")
+  )
 
   def apply(id: Int, fullSymbol: String) = {
     new Stock(id, fullSymbol, 0D, "/")

@@ -43,25 +43,23 @@
 	    
 	    var appView = new AppViewModel();
 		ko.applyBindings(appView);
-		
-	    $(document).bind("longPoll", function() {
-	    	$.getJSON("/pollStream.json", function(data) {
+
+	    function pollStream() {
+			loadStream("/pollStream.json");
+	    }
+	    
+	    function loadStream(url) {
+	    	$.getJSON(url, function(data) {
 	    		if(data != null) {
 		    		// Update data
 		    		ko.mapping.fromJS(data, appView.stocks);
 	    		}
-	    		// Fire event
-	    		$(document).trigger("longPoll");
-    		});	    	
-	    });
+    		}).complete(pollStream);	    	
+	    }
 	    
 	    $(document).ready(function() {
-	    	$.getJSON("/view.json", function(data) { 
-	    		ko.mapping.fromJS(data, appView.stocks);
-	    		
-	    		// Fire event
-	    		$(document).trigger("longPoll");
-	    	});
+	    	// Render view initially
+	    	loadStream("/view.json");
 	    });
     </script>
 }

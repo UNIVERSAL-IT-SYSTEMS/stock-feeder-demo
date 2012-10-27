@@ -1,10 +1,8 @@
 package controllers
 
 import java.net.URL
-
 import scala.collection.mutable
 import scala.io.Source
-
 import akka.util.duration.intToDurationInt
 import play.api.Logger
 import play.api.Play.current
@@ -23,12 +21,15 @@ import play.api.libs.json.JsValue
 import play.api.libs.json.Json
 import play.api.mvc.Action
 import play.api.mvc.Controller
+import java.util.UUID
 
 
 object StockPushee {
   val timeout = 30000L;
 }
-case class StockPushee() extends Pushee[String] {
+
+// Distinguish every request by a unique id
+case class StockPushee(val id: UUID) extends Pushee[String] {
   var pushee:Pushee[String] = null
   val timeout = System.currentTimeMillis + StockPushee.timeout
   var complete = false
@@ -52,7 +53,7 @@ case class StockPushee() extends Pushee[String] {
 }
 
 object Application extends Controller {
-  var update = false
+  var update = true
   
   val stockPushees = new mutable.HashSet[StockPushee]() with mutable.SynchronizedSet[StockPushee]
   val stockJsonPushees = new mutable.HashSet[StockPushee]() with mutable.SynchronizedSet[StockPushee]
@@ -100,7 +101,7 @@ object Application extends Controller {
   }
   
   def pollStream = Action {
-	  val stockPushee = new StockPushee()
+	  val stockPushee = new StockPushee(UUID.randomUUID())
 	  
 	  val dataStream = Enumerator.pushee[String] (
 		  	onStart = { pushee =>
@@ -110,8 +111,7 @@ object Application extends Controller {
 		  	  Application.stockPushees.add(stockPushee)
 
 		  	  // Push everything the first time a client connects
-		  	  // TODO Sort the list
-		  	  stockPushee.push(views.html.poll(Stock.stockList.valuesIterator).toString.trim)
+		  	  stockPushee.push(views.html.poll(Stock.stockList.values.toSeq.sortBy(_.symbol).toIterator).toString.trim)
 		  	},
 		  	onComplete = { stockPushee.onComplete },
 		  	onError = { (error, input) => 
@@ -136,7 +136,7 @@ object Application extends Controller {
 	}
 
   def pollStreamJson = Action {
-	  val stockPushee = new StockPushee()
+	  val stockPushee = new StockPushee(UUID.randomUUID())
     
 	  val dataStream = Enumerator.pushee[String] (
 		  	onStart = { pushee =>
@@ -156,8 +156,7 @@ object Application extends Controller {
   }
   
   def viewJson = Action {
-    // TODO Sort the list
-    Ok(Json.toJson(Stock.stockList.values.toSeq))
+    Ok(Json.toJson(Stock.stockList.values.toSeq.sortBy(_.symbol)))
   }
   
   def processPushees = {
@@ -166,13 +165,15 @@ object Application extends Controller {
 	if(!quotes.isEmpty) {
 		// Push them out for each pushee
 		stockPushees.filter(!_.isComplete).foreach { stockPushee => 
+		  	// Push only updated quotes to simple (arduino) clients
 	    	stockPushee.pushee.push(views.html.poll(quotes).toString.trim) 
 	    	Logger.info("Processed pushee: " + stockPushee)
 		}
 		
 		// Send out the Json promises
-		stockJsonPushees.filter(!_.isComplete).filter { stockPushee => 
-	    	stockPushee.pushee.push(Json.toJson(getQuotes.toSeq).toString)
+		stockJsonPushees.filter(!_.isComplete).filter { stockPushee =>
+		  	// Push full update to json clients
+	    	stockPushee.pushee.push(Json.toJson(Stock.stockList.values.toSeq).toString)
 	    	Logger.info("Processed json pushee: " + stockPushee)
 	    	// Web clients process streams slightly differently, close the connection right after
 	    	// new data is pushed to force a reconnect
