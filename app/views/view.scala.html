@@ -1,45 +1,19 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>GorillaBuilderz Stock Streamer</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("img/favicon.ico")">
 
-    <link href="@routes.Assets.at("css/bootstrap.min.css")" rel="stylesheet">
-	<link href="@routes.Assets.at("css/bootstrap-responsive.css")" rel="stylesheet">    
-	
-	<style type="text/css">
-		.up {color: green;}
-		.down {color: red;}
-	</style>
-  </head>
-  <body>
-    <div class="container-fluid">
-    	<img alt="GorillaBuilderz" src="@routes.Assets.at("img/logo.png")">
-    	<p class="lead">Stock Streamer</p>
-
-		<div class="row-fluid">
-			<div class="span6">
-	    	<table class="table table-striped">
-	    		<thead>
-	    			<tr>
-		    			<th>Symbol</th>
-		    			<th>Last Price</th>
-	    			</tr>
-	    		</thead>
-	    		<tbody data-bind="foreach: stocks">
-			    	<tr data-bind="css: { up: direction == '+', down: direction == '-' }">
-						<td data-bind="text: symbol"></td>
-						<td data-bind="text: price"></td>
-					</tr>    
-	    		</tbody>
-			</table>
-			</div>
-		</div>
-		<footer>
-			<a href="http://gorillabuilderz.com.au/">http://gorillabuilderz.com.au/</a>
-		</footer>
-    </div>
+@main {
+   	<table class="table">
+   		<thead>
+   			<tr>
+    			<th>Symbol</th>
+    			<th>Last Price</th>
+   			</tr>
+   		</thead>
+   		<tbody data-bind="foreach: stocks">
+	    	<tr data-bind="css: { up: direction() == '+', down: direction() == '-' }, flashUpdate: direction">
+				<td data-bind="text: symbol"></td>
+				<td data-bind="text: price"></td>
+			</tr>    
+   		</tbody>
+	</table>
   
     <script src="@routes.Assets.at("js/jquery-1.8.2.min.js")"></script>
     <script src="@routes.Assets.at("js/bootstrap.min.js")"></script>
@@ -47,21 +21,34 @@
     <script src="@routes.Assets.at("js/knockout.mapping-2.3.2.js")"></script>
     
     <script type="text/javascript">
+    	// UI Feedback that a price has updated
+    	ko.bindingHandlers.flashUpdate = {
+       	    update: function(element) {
+       	    	$(element).fadeOut(100).fadeIn(100 );
+       	    }
+       	};
+        
 	    function AppViewModel() {
 	        var self = this;
+	        
+	        // Ensure stock id's are mapped
+	    	var mapping = {
+   		        key: function(data) {
+   		            return ko.utils.unwrapObservable(data.id);
+    		    }
+    		}
+	    	
+	        self.stocks = ko.mapping.fromJS([], mapping);
 	    }
 	    
 	    var appView = new AppViewModel();
-	    
+		ko.applyBindings(appView);
+		
 	    $(document).bind("longPoll", function() {
 	    	$.getJSON("/pollStream.json", function(data) {
 	    		if(data != null) {
 		    		// Update data
-		    		console.debug(data);
 		    		ko.mapping.fromJS(data, appView.stocks);
-	    		}
-	    		else {
-	    			console.debug("null array...");
 	    		}
 	    		// Fire event
 	    		$(document).trigger("longPoll");
@@ -70,13 +57,11 @@
 	    
 	    $(document).ready(function() {
 	    	$.getJSON("/view.json", function(data) { 
-	    		appView.stocks = data;
-	    		ko.applyBindings(appView);
+	    		ko.mapping.fromJS(data, appView.stocks);
 	    		
 	    		// Fire event
 	    		$(document).trigger("longPoll");
 	    	});
 	    });
     </script>
-  </body>
-</html>
+}
