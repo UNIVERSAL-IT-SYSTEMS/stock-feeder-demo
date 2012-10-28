@@ -8,7 +8,7 @@ import play.api.Logger
 object StockFeed {
   val yahooRegex = """([\^\w\.]*)",([\d\.]*),"([\d\/]*)","([\dapm:]*)",([\+-\.\d]*),([\d\.]*),([\d\.]*),([\d\.]*),([\d]*).*""".r
 
-  def getQuotes(stockList:mutable.Map[String, Stock]): Iterator[Stock] = {
+  def getQuotes(stockList:mutable.Map[String, Stock]): Set[Stock] = {
     val source = Source.fromInputStream(
         new URL("http://download.finance.yahoo.com/d/quotes.csv?s=" + stockList.keys.mkString(",") + "&f=sl1d1t1c1ohgv&e=.csv")
         	.openConnection()
@@ -24,14 +24,10 @@ object StockFeed {
 	        stockList.get(symbol).filter(!_.price.equals(price))
 	        	.map { stock =>
 	        		// Up or down?
-	        	  	val newStock = if(stock.price.compareTo(price) < 0)
+	        	  	if(stock.price.compareTo(price) < 0)
 	        	  		new Stock(stock.id, symbol, price, "+")
 	        	  	else
 	        	  		new Stock(stock.id, symbol, price, "-")
-	        	  	
-
-	        	  	
-	        	  	newStock
 	        	}
 	      }
 	      case None => {
@@ -39,6 +35,6 @@ object StockFeed {
 	        None
 	      }
 	    }      
-    }.filter(!_.isEmpty).map(_.get)
+    }.filter(!_.isEmpty).map(_.get).toSet
   }
 }

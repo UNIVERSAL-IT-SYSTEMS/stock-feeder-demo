@@ -97,7 +97,7 @@ object Application extends Controller {
   }  
   
   def poll = Action {
-    Ok(views.html.poll(getQuotes))
+    Ok(views.html.poll(getQuotes.toIterator))
   }
   
   def pollStream = Action {
@@ -166,7 +166,7 @@ object Application extends Controller {
 		// Push them out for each pushee
 		stockPushees.filter(!_.isComplete).foreach { stockPushee => 
 		  	// Push only updated quotes to simple (arduino) clients
-	    	stockPushee.pushee.push(views.html.poll(quotes).toString.trim) 
+	    	stockPushee.pushee.push(views.html.poll(quotes.toIterator).toString.trim) 
 	    	Logger.info("Processed pushee: " + stockPushee)
 		}
 		
