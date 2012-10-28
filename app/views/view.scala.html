@@ -1,65 +1,37 @@
 
 @main {
-   	<table class="table">
-   		<thead>
-   			<tr>
-    			<th>Symbol</th>
-    			<th>Last Price</th>
-   			</tr>
-   		</thead>
-   		<tbody data-bind="foreach: stocks">
-	    	<tr data-bind="css: { up: direction() == '+', down: direction() == '-' }, flashUpdate: direction">
-				<td data-bind="text: symbol"></td>
-				<td data-bind="text: price"></td>
-			</tr>    
-   		</tbody>
-	</table>
+	<!-- ko if: serverError -->
+	<div class="row-fluid">
+		<div class="span6">
+			<div class="alert alert-error fade in">
+			  	<strong>Error</strong> Having problems connecting to server, will try again in <strong><span data-bind="text: serverErrorRetryCountdown()"></span> seconds</strong>.
+			  	<span data-bind="if: retrying"><br>Retrying...</span>
+			</div>
+		</div>
+	</div>
+	<!-- /ko -->
+	<div class="row-fluid">
+		<div class="span6">
+		   	<table class="table">
+		   		<thead>
+		   			<tr>
+		    			<th>Symbol</th>
+		    			<th>Last Price</th>
+		   			</tr>
+		   		</thead>
+		   		<tbody data-bind="foreach: stocks">
+			    	<tr data-bind="css: { up: direction() == '+', down: direction() == '-' }, flashUpdate: direction">
+						<td data-bind="text: symbol"></td>
+						<td data-bind="text: price"></td>
+					</tr>    
+		   		</tbody>
+			</table>
+		</div>
+	</div>
   
     <script src="@routes.Assets.at("js/jquery-1.8.2.min.js")"></script>
     <script src="@routes.Assets.at("js/bootstrap.min.js")"></script>
     <script src="@routes.Assets.at("js/knockout-2.1.0.js")"></script>
     <script src="@routes.Assets.at("js/knockout.mapping-2.3.2.js")"></script>
-    
-    <script type="text/javascript">
-    	// UI Feedback that a price has updated
-    	ko.bindingHandlers.flashUpdate = {
-       	    update: function(element) {
-       	    	$(element).fadeOut(100).fadeIn(100 );
-       	    }
-       	};
-        
-	    function AppViewModel() {
-	        var self = this;
-	        
-	        // Ensure stock id's are mapped
-	    	var mapping = {
-   		        key: function(data) {
-   		            return ko.utils.unwrapObservable(data.id);
-    		    }
-    		}
-	    	
-	        self.stocks = ko.mapping.fromJS([], mapping);
-	    }
-	    
-	    var appView = new AppViewModel();
-		ko.applyBindings(appView);
-
-	    function pollStream() {
-			loadStream("/pollStream.json");
-	    }
-	    
-	    function loadStream(url) {
-	    	$.getJSON(url, function(data) {
-	    		if(data != null) {
-		    		// Update data
-		    		ko.mapping.fromJS(data, appView.stocks);
-	    		}
-    		}).complete(pollStream);	    	
-	    }
-	    
-	    $(document).ready(function() {
-	    	// Render view initially
-	    	loadStream("/view.json");
-	    });
-    </script>
+    <script src="@routes.Assets.at("js/app.js")"></script>
 }

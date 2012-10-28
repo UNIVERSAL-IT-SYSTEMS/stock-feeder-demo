@@ -3,30 +3,34 @@
 @import helper.twitterBootstrap._
 
 @main {
-	<ul>
-		<li>Current Stocks: @stocks.mkString</li>
-		<li>Update: @controllers.Application.update</li>
-	</ul>
-	<p>
-	Initialise with a list of stocks.
-	</p>
-	<ul>
-		<li>Straight codes: GOOG, AAPL</li>
-		<li>Australian Stocks: Suffixed with .AX eg: ANZ.AX</li>
-		<li>Euro: Suffixed with .AS eg: AEX.AS</li>
-	</ul>
-	
-	<p>
-	Enter comma separated (no spaces) codes:
-	</p>
-	<ul>
-		<li>ANZ.AX,BHP.AX,CBA.AX,NAB.AX,QAN.AX,RIO.AX</li>
-		<li>AEX.AS,FUR.AS,KPN.AS,PNL.AS,REN.AS,UNA.AS</li>
-	</ul>
-	@helper.form(action = routes.Application.updateInit) {
-		@helper.inputText(form("stockList"), '_label -> "Comma Separated Symbols")
-		@helper.checkbox(form("update"), '_label -> "Update")
-	
-		<input type="submit" value="Save">
-	}
+	<div class="row-fluid">
+		<div class="span6">
+			<ul>
+				<li>Current Stocks: @stocks.mkString</li>
+				<li>Update: @controllers.Application.update</li>
+			</ul>
+			<p>
+			Initialise with a list of stocks.
+			</p>
+			<ul>
+				<li>Straight codes: GOOG, AAPL</li>
+				<li>Australian Stocks: Suffixed with .AX eg: ANZ.AX</li>
+				<li>Euro: Suffixed with .AS eg: AEX.AS</li>
+			</ul>
+			
+			<p>
+			Enter comma separated (no spaces) codes:
+			</p>
+			<ul>
+				<li>ANZ.AX,BHP.AX,CBA.AX,NAB.AX,QAN.AX,RIO.AX</li>
+				<li>AEX.AS,FUR.AS,KPN.AS,PNL.AS,REN.AS,UNA.AS</li>
+			</ul>
+			@helper.form(action = routes.Application.updateInit) {
+				@helper.inputText(form("stockList"), '_label -> "Comma Separated Symbols")
+				@helper.checkbox(form("update"), '_label -> "Update")
+			
+				<input type="submit" value="Save">
+			}
+		</div>
+	</div>
 }
