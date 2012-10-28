@@ -64,7 +64,8 @@ function pollStream() {
 
 function loadStream(url) {
 	$.getJSON(url, function(data) {
-		if(data != null && data instanceof Array) {
+		// Ensure this is an array before doing anything, it could be an empty (0) chunk
+		if($.isArray(data)) {
     		// Update data
     		ko.mapping.fromJS(data, appView.stocks);
 		}
