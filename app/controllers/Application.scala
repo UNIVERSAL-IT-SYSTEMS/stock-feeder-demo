@@ -152,11 +152,11 @@ object Application extends Controller {
 		  	}
 	  )
 
-	  Ok.stream(dataStream)  
+	  Ok.stream(dataStream).as("application/json")
   }
   
   def viewJson = Action {
-    Ok(Json.toJson(Stock.stockList.values.toSeq.sortBy(_.symbol)))
+    Ok(Json.toJson(Stock.stockList.values.toSeq.sortBy(_.symbol))).as("application/json")
   }
   
   def processPushees = {
