@@ -118,7 +118,7 @@ void parseLine(String line) {
     stocks[i].setColor(SGC_COLORS.WHITE);
   }
   
-  stocks[i].setText(line.substring(2, 13));
+  stocks[i].setText(line.substring(2, 14));
   
   status.setText("Waiting for update");      
 }
@@ -148,7 +148,7 @@ void loop()
     // if there are incoming bytes available 
     // from the server, read them and print them:
     if (client.available()) {
-      String string = client.readStringUntil('\n');
+      String string = client.readStringUntil('|');
       if(DEBUG) Serial.println(string);
       parseLine(string);
     }

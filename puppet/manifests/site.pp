@@ -16,6 +16,15 @@ class { "$app_name":
 	require => Class["Play"],
 }
 
+package { "lighttpd-remove":
+	name => "lighttpd",
+	ensure => "purged",
+}
+
+$app_name::nginx {
+	require => [Class["$app_name"], Package["lighttpd-remove"] ]
+}
+
 class { "gitapp":
 	app_name	=> "$app_name",
 	repository  => "https://github.com/gorillabuilderz/stock-feeder-demo.git",

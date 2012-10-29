@@ -111,7 +111,7 @@ object Application extends Controller {
 		  	  Application.stockPushees.add(stockPushee)
 
 		  	  // Push everything the first time a client connects
-		  	  stockPushee.push(views.html.poll(Stock.stockList.values.toSeq.sortBy(_.symbol).toIterator).toString.trim)
+		  	  stockPushee.push(views.html.poll(Stock.stockListValuesSorted.toIterator).toString.trim)
 		  	},
 		  	onComplete = { stockPushee.onComplete },
 		  	onError = { (error, input) => 
@@ -156,7 +156,7 @@ object Application extends Controller {
   }
   
   def viewJson = Action {
-    Ok(Json.toJson(Stock.stockList.values.toSeq.sortBy(_.symbol))).as("application/json")
+    Ok(Json.toJson(Stock.stockListValuesSorted)).as("application/json")
   }
   
   def processPushees = {
@@ -173,7 +173,7 @@ object Application extends Controller {
 		// Send out the Json promises
 		stockJsonPushees.filter(!_.isComplete).filter { stockPushee =>
 		  	// Push full update to json clients
-	    	stockPushee.pushee.push(Json.toJson(Stock.stockList.values.toSeq).toString)
+	    	stockPushee.pushee.push(Json.toJson(Stock.stockListValuesSorted).toString)
 	    	Logger.info("Processed json pushee: " + stockPushee)
 	    	// Web clients process streams slightly differently, close the connection right after
 	    	// new data is pushed to force a reconnect

@@ -1,3 +1,6 @@
 @(stocks: Iterator[Stock])
-@for(stock <- stocks) {@stock.id @String.format("%-4s", stock.symbol) @String.format("%7.3f", stock.price) @stock.direction
-} 
+@for(stock <- stocks) {@stock.id @String.format("%-4s", stock.symbol) @String.format("%7.3f", stock.price) @stock.direction|}
+
+
+
+

@@ -1,6 +1,7 @@
 # Stock Feeder Demo
 
-A small stock streaming application demonstrating GorillaBuilderz technology.
+A small stock streaming application demonstrating GorillaBuilderz technology. Supports streaming stock data
+from [Yahoo Finance](http://au.finance.yahoo.com/) to multiple simultaneous client devices: Arduino, Mobile, Tablet and Web.
 
 [TODO Provide architecture diagram]
 
@@ -15,15 +16,16 @@ A small stock streaming application demonstrating GorillaBuilderz technology.
 
 * [Arduino Sketch](http://www.arduino.cc/en/Tutorial/Sketch)
 * [GorillaBuilderz Arduino libraries](https://github.com/gorillabuilderz/gb-arduino-libs)
-* [Play Framework 2.0](http://www.playframework.org/) in [Scala](http://www.scala-lang.org/)
+* [Play Framework 2.0.4](http://www.playframework.org/) in [Scala](http://www.scala-lang.org/)
 * [jQuery](http://jquery.com/)
 * [KnockoutJS](knockoutjs.com)
+* [nginx](http://nginx.org/)
 * [Puppet](http://puppetlabs.com/) deployment to Amazon EC2
 
 ## Dependencies
 
 * [Arduino IDE](http://www.arduino.cc/en/Main/software)
-* [Play Framework 2.0](http://www.playframework.org/)
+* [Play Framework 2.0.4](http://www.playframework.org/)
 
 ## Infrastructure
 
