@@ -10,6 +10,8 @@ object Stock {
 //	  "FUR.AS" -> Stock(2, "FUR.AS"),
 //	  "KPN.AS" -> Stock(3, "KPN.AS")
   )
+  
+  def stockListValuesSorted: Seq[Stock] = {Stock.stockList.values.toSeq.sortBy(_.symbol)}
 
   def apply(id: Int, fullSymbol: String) = {
     new Stock(id, fullSymbol, 0D, "/")
