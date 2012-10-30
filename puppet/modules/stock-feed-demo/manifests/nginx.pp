@@ -1,15 +1,17 @@
 define stock-feed-demo::nginx {
-	exec { "add-apt-repository ppa:nginx/stable":
+	exec { "nginx-add-apt-repository":
+		command => "add-apt-repository -y ppa:nginx/stable",
 		unless => "grep -R nginx /etc/apt/* 2>/dev/null"
 	}
 
-	exec { "apt-get update"
-		require => Exec["add-apt-repository -y ppa:nginx/stable"]
+	exec { "nginx-apt-get-update":
+		command => "apt-get update",
+		require => Exec["nginx-add-apt-repository"]
 	}
 
 	package { "nginx":
 		ensure => latest,
-		require => Exec["apt-get update"]
+		require => Exec["nginx-apt-get-update"]
 	}
 	
 	service { "nginx":
@@ -29,7 +31,7 @@ define stock-feed-demo::nginx {
 	file { "/etc/nginx/sites-enabled/stock-feed-demo":
 		ensure  => link,
 		target => "/etc/nginx/sites-available/stock-feed-demo",
-		require => File["/etc/nginx/sites-available/stock-feed-demo"]
+		require => File["/etc/nginx/sites-available/stock-feed-demo"],
 		notify  => Service["nginx"],
 	}	
 

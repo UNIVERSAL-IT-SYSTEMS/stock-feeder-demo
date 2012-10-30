@@ -8,6 +8,6 @@ package { "lighttpd-remove":
 class { "stock-feed-demo":
 }
 
-stock-feed-demo::nginx {
+stock-feed-demo::nginx { "stock-feed-demo":
 	require => [Class["stock-feed-demo"], Package["lighttpd-remove"]  ]
 }
