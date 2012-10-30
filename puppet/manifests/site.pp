@@ -12,7 +12,7 @@ class {"play":
 	apps_group => "www-data",
 }
 
-class { "$app_name":
+class { "stock-feed-demo":
 	require => Class["Play"],
 }
 
@@ -21,8 +21,8 @@ package { "lighttpd-remove":
 	ensure => "purged",
 }
 
-$app_name::nginx {
-	require => [Class["$app_name"], Package["lighttpd-remove"] ]
+stock-feed-demo::nginx { "$app_name":
+	require => [Class["stock-feed-demo"], Package["lighttpd-remove"] ]
 }
 
 class { "gitapp":
